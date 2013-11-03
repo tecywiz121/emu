@@ -17,3 +17,7 @@
 
 # CMake Build Directory
 build/
+
+# Misc
+*.pyc
+__pycache__/
