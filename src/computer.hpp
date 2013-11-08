@@ -15,20 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Tomato.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <iostream>
-#include "jit/jit-plus.h"
+#ifndef COMPUTER_HPP
+#define COMPUTER_HPP 1
 
-#include "page.hpp"
-#include "page_function.hpp"
-
-using std::cout;
-using std::endl;
-
-using namespace tomato;
-
-int main(int, char**)
+namespace tomato
 {
-    jit_context ctx;
-    page test(1);
-    test.permissions(page::page_flags::EXECUTABLE);
+
+class computer
+{
+
+};
+
 }
+
+#endif

@@ -15,20 +15,44 @@
  * You should have received a copy of the GNU General Public License
  * along with Tomato.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <iostream>
+#ifndef PAGE_FUNCTION_HPP
+#define PAGE_FUNCTION_HPP 1
+
 #include "jit/jit-plus.h"
 
+#include <cstdint>
 #include "page.hpp"
-#include "page_function.hpp"
 
-using std::cout;
-using std::endl;
-
-using namespace tomato;
-
-int main(int, char**)
+namespace tomato
 {
-    jit_context ctx;
-    page test(1);
-    test.permissions(page::page_flags::EXECUTABLE);
+
+class page_function : public jit_function
+{
+private:
+    uint8_t _stop_sentinel;
+    jit_value _R[7];
+    const page& _my_page;
+
+    uint32_t _real_registers[7];
+
+protected:
+    virtual jit_type_t create_signature() override;
+
+    virtual void emit_instruction(uint16_t insn);
+    virtual void emit_save_state();
+
+public:
+    page_function(jit_context& context, const page& my_page)
+        : jit_function(context), _my_page(my_page)
+    {
+        create();
+    }
+
+    const page& my_page() const { return _my_page; }
+
+    virtual void build() override;
+};
+
 }
+
+#endif

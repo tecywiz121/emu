@@ -15,20 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with Tomato.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <iostream>
-#include "jit/jit-plus.h"
-
+#include <memory>
 #include "page.hpp"
-#include "page_function.hpp"
+#include "util.hpp"
 
-using std::cout;
-using std::endl;
-
-using namespace tomato;
-
-int main(int, char**)
+namespace tomato
 {
-    jit_context ctx;
-    page test(1);
-    test.permissions(page::page_flags::EXECUTABLE);
+
+void page::permissions(page_flags flags)
+{
+    bool ex = executable();             // Save the old value of executable
+
+    _flags &= ~page_flags::EXECUTABLE;  // Clear the lowest two bits
+    _flags |= (flags & 0x03);           // Set the permission bits
+
+    if (ex) {
+        if (!executable()) {
+            _function.reset(0);
+        }
+    } else {
+        if (executable()) {
+            _function = make_unique<page_function>(this);
+        }
+    }
+}
 }
