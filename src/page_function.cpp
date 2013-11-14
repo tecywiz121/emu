@@ -17,83 +17,116 @@
  */
 
 #include <cstdint>
+#include <vector>
 #include "page_function.hpp"
+#include "page.hpp"
 #include "jit/jit.h"
 #include "jit/jit-plus.h"
+
+using std::vector;
 
 namespace tomato
 {
 
+page_function::page_function(page& my_page)
+    : jit_function(my_page.parent().jit_ctx()), _my_page(my_page)
+{
+    create();
+}
+
 jit_type_t page_function::create_signature()
 {
     return signature_helper(
-        jit_type_uint,  // Return       the index of the last executed instruction
-        jit_type_uint,  // Argument     the index of the instruction to resume from
+        jit_type_uint,      // Return       the index of the last executed instruction
+        jit_type_uint,      // Argument     the index of the instruction to resume from
+        jit_type_void_ptr,  // Argument     stop_sentinel
+        jit_type_void_ptr,  // Argument     pointer to register A
+        jit_type_void_ptr,  // Argument     pointer to register B
+        jit_type_void_ptr,  // Argument     pointer to register C
+        jit_type_void_ptr,  // Argument     pointer to register D
+        jit_type_void_ptr,  // Argument     pointer to register E
+        jit_type_void_ptr,  // Argument     pointer to register F
+        jit_type_void_ptr,  // Argument     pointer to register PC
         end_params
     );
 }
 
 void page_function::build()
 {
-    // Build array of labels to use for each instruction
-    jit_label_t bytecode_labels[_page.size()];
-    for (jit_label_t& lbl : bytecode_labels) {
-        lbl = jit_label_undefined;
+    // Read Parameters
+    jit_value resume = get_param(0);
+    jit_value stop_sentinel_ptr = get_param(1);
+
+    // Initialize the registers
+    registers R;
+    for (int ii = 0; ii < computer::N_REGISTERS; ii++) {
+        R[ii] = insn_load_relative(get_param(ii+2), 0, jit_type_uint);
     }
 
-    jit_value resume = get_param(0);
-    jit_value ret_err = new_constant(0xFFFFFFFF); // TODO: put this into a constant somewhere
-    jit_value ret_done = new_constant(0xFFFFFFFE);
-    jit_value stop_sentinel_ptr = new_constant(&_stop_sentinel);
+    // Build array of labels to use for each instruction
+    vector<jit_label_t> bytecode_labels;
+    for (vector<jit_label_t>::size_type ii = 0; ii < _my_page.size(); ii++) {
+        bytecode_labels.push_back(jit_label_undefined);
+    }
+
+    jit_value ret_err = new_constant(return_code::ERROR);
+    jit_value ret_done = new_constant(return_code::DONE);
 
     // Page preamble
     // TODO: Check return value
-    jit_insn_jump_table(raw(), resume.raw(), bytecode_labels, _page.size());    // Jump to the instruction
+    jit_insn_jump_table(raw(), resume.raw(), &bytecode_labels[0],
+                        static_cast<unsigned int>(_my_page.size()));            // Jump to the instruction
     insn_return(ret_err);                                                       // Invalid jump destination
 
     // Instructions
-    const std::vector<uint16_t>& memory = _page.memory();
+    const std::vector<uint16_t>& memory = _my_page.memory();
     for (std::vector<uint16_t>::size_type ii = 0; ii < memory.size(); ii++) {
         // Instruction
         jit_insn_label(raw(), &bytecode_labels[ii]);                            // Create the label for this instruction
-        emit_instruction(memory.at(ii));                                        // Emit the native code
+        emit_instruction(memory.at(ii), R);                                     // Emit the native code
 
-        // Epilog
-        if (ii+1 == memory.size()) {                                            // Check if this is the last instruction in the page
-            emit_save_state();                                                  // If it is, save the current state of the CPU
-            insn_return(ret_done);                                              // and return value signifying the end of the page.
-        } else {                                                                // Otherwise, check if we need to pause execution
-            // Not the last instruction
+        // Instruction epilog
+        if (ii+1 < memory.size()) {                                             // Check if this is the last instruction in the page
+                                                                                // Not the last instruction, so check if we need to pause
 
             jit_value stop = insn_load_relative(stop_sentinel_ptr, 0,
-                                                jit_type_ubyte);                // Load the value of the stop sentinel
+                                                jit_type_sys_bool);             // Load the value of the stop sentinel
             // TODO: Check return value
             jit_insn_branch_if_not(raw(), stop.raw(), &bytecode_labels[ii+1]);  // Check if the stop sentinel has been set
-            emit_save_state();                                                  // If it has, save the current state of the CPU
+            emit_save_state(R);                                                 // If it has, save the current state of the CPU
             jit_value next = new_constant(ii+1, jit_type_uint);                 // and return the offset of the next instruction
             insn_return(next);                                                  // Return it
                                                                                 // Otherwise, go to the next instruction
         }
     }
 
+    // Page epilog
+    emit_save_state(R);                                                         // Save the current state of the CPU
+    insn_return(ret_done);                                                      // and return value signifying the end of the page.
+
 }
 
-void page_function::emit_save_state()
+void page_function::emit_save_state(registers& R)
 {
-    for (int ii = 0; ii < 7; ii++) {
-        jit_value addr = new_constant(&_real_registers[ii]);
-        insn_store_relative(addr, 0, _R[ii]);
+    for (int ii = 0; ii < computer::N_REGISTERS; ii++) {
+        insn_store_relative(get_param(ii+2), 0, R[ii]);
     }
 }
 
-void page_function::emit_instruction(uint16_t insn)
+void page_function::emit_instruction(uint16_t insn, registers& R)
 {
     switch (insn) {
     case 0x0000:
         break;
 
     case 0x0001:
-        _R[0] = _R[0] + new_constant(1);
+        R[0] = new_constant(0x00);
+        R[1] = new_constant(0x01);
+        R[2] = new_constant(0x02);
+        R[3] = new_constant(0x03);
+        R[4] = new_constant(0x04);
+        R[5] = new_constant(0x05);
+        R[6] = new_constant(0x06);
         break;
     }
 }

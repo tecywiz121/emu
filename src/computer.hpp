@@ -18,12 +18,20 @@
 #ifndef COMPUTER_HPP
 #define COMPUTER_HPP 1
 
+#include "jit/jit-plus.h"
+
 namespace tomato
 {
 
 class computer
 {
+private:
+    jit_context _jit_ctx;
 
+public:
+    static const int N_REGISTERS = 7;
+    const jit_context& jit_ctx() const { return _jit_ctx; }
+    jit_context& jit_ctx() { return _jit_ctx; }
 };
 
 }

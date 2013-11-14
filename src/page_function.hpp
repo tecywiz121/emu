@@ -19,34 +19,34 @@
 #define PAGE_FUNCTION_HPP 1
 
 #include "jit/jit-plus.h"
+#include "computer.hpp"
 
 #include <cstdint>
-#include "page.hpp"
 
 namespace tomato
 {
 
+class page;
+
 class page_function : public jit_function
 {
 private:
-    uint8_t _stop_sentinel;
-    jit_value _R[7];
+    typedef jit_value registers[computer::N_REGISTERS];
     const page& _my_page;
-
-    uint32_t _real_registers[7];
 
 protected:
     virtual jit_type_t create_signature() override;
 
-    virtual void emit_instruction(uint16_t insn);
-    virtual void emit_save_state();
+    virtual void emit_instruction(uint16_t insn, registers& R);
+    virtual void emit_save_state(registers& R);
 
 public:
-    page_function(jit_context& context, const page& my_page)
-        : jit_function(context), _my_page(my_page)
-    {
-        create();
-    }
+    enum return_code {
+        DONE = 0xFFFFFFFE,
+        ERROR = 0xFFFFFFFF,
+    };
+
+    page_function(page& my_page);
 
     const page& my_page() const { return _my_page; }
 

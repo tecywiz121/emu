@@ -35,7 +35,7 @@ void page::permissions(page_flags flags)
         }
     } else {
         if (executable()) {
-            _function = make_unique<page_function>(this);
+            _function = make_unique<page_function>(*this);
         }
     }
 }
