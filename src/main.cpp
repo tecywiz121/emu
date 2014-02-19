@@ -16,41 +16,14 @@
  * along with Tomato.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <iostream>
-#include "jit/jit-plus.h"
 
-#include "computer.hpp"
 #include "page.hpp"
-#include "page_function.hpp"
 
 using std::cout;
 using std::endl;
 
 using namespace tomato;
 
-struct state
-{
-    jit_uint A;
-    jit_uint B;
-    jit_uint C;
-    jit_uint D;
-    jit_uint E;
-    jit_uint F;
-    jit_uint PC;
-};
-
 int main(int, char**)
 {
-    computer system;
-    page test(system, 1);
-    test.memory()[0] = 1;
-    test.permissions(page::page_flags::EXECUTABLE);
-
-    uint32_t result;
-    uint32_t resume = 0;
-    bool stop = 0;
-    state r = {0, 0, 0, 0, 0, 0, 0};
-    void* a[] = {&r.A, &r.B, &r.C, &r.D, &r.E, &r.F, &r.PC};
-    void* params[] = {&resume, &stop, &a[0], &a[1], &a[2], &a[3], &a[4], &a[5], &a[6]};
-    test.function().apply(params, (void*)&result);
-    cout << "Result: " << result << endl;
 }

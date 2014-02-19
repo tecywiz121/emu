@@ -22,9 +22,6 @@
 #include <vector>
 #include <memory>
 
-#include "computer.hpp"
-#include "page_function.hpp"
-
 namespace tomato
 {
 
@@ -32,17 +29,13 @@ class page
 {
 private:
     int _flags = 0;
-    computer& _parent;
     std::vector<uint16_t> _memory;
-    std::unique_ptr<page_function> _function;
 
     page(const page&);
     page(page&&);
 
 public:
-    page(computer& p, std::vector<uint16_t>::size_type size)
-        : _parent(p), _memory(size)
-    {}
+    page(std::vector<uint16_t>::size_type size) : _memory(size) {}
 
     enum page_flags
     {
@@ -55,9 +48,6 @@ public:
 
         PRESENT     = 8,
     };
-
-    computer& parent() { return _parent; }
-    page_function& function() { return *_function; }
 
     void permissions(page_flags flags);
 

@@ -24,19 +24,7 @@ namespace tomato
 
 void page::permissions(page_flags flags)
 {
-    bool ex = executable();             // Save the old value of executable
-
     _flags &= ~page_flags::EXECUTABLE;  // Clear the lowest two bits
     _flags |= (flags & 0x03);           // Set the permission bits
-
-    if (ex) {
-        if (!executable()) {
-            _function.reset(0);
-        }
-    } else {
-        if (executable()) {
-            _function = make_unique<page_function>(*this);
-        }
-    }
 }
 }
